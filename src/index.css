@@ -1,0 +1,575 @@
+/* DO NOT CHANGE */
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* DO NOT CHANGE */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-stack-sans);
+  --font-arabic: var(--font-stack-arabic);
+
+  /* Noqta brand scale, exposed to Tailwind (bg-nq-blue, text-nq-navy, …). */
+  --color-nq-blue: var(--nq-blue);
+  --color-nq-navy: var(--nq-navy);
+  --color-nq-violet: var(--nq-violet);
+  --color-nq-turquoise: var(--nq-turquoise);
+  --color-nq-yellow: var(--nq-yellow);
+  --color-nq-coral: var(--nq-coral);
+  --color-nq-soft: var(--nq-soft);
+  --color-nq-ink: var(--nq-ink);
+  --color-nq-muted: var(--nq-muted);
+}
+
+/*
+ * Noqta design system.
+ *
+ * Brand palette lives here once: electric blue → violet for action and energy,
+ * turquoise for selection, yellow for achievement. Surfaces stay light and calm
+ * so an exam question never competes with decoration.
+ */
+:root {
+  --radius: 0.9rem;
+  --font-stack-sans: "Plus Jakarta Sans", "Inter", "SF Pro Text", "Segoe UI",
+    system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-stack-arabic: "Noto Sans Arabic", "Cairo", "IBM Plex Sans Arabic",
+    "Segoe UI", Tahoma, system-ui, sans-serif;
+
+  /* Brand */
+  --nq-blue: #4169ff;
+  --nq-violet: #8b5cf6;
+  --nq-turquoise: #22d3ee;
+  --nq-yellow: #facc15;
+  --nq-coral: #ff7a70;
+  --nq-navy: #171b38;
+  --nq-soft: #f7f8fc;
+  --nq-ink: #20284a;
+  --nq-muted: #68718a;
+  --nq-gradient: linear-gradient(120deg, #4169ff 0%, #6d63ff 46%, #8b5cf6 100%);
+  --nq-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in oklab, #4169ff 12%, white) 0%,
+    color-mix(in oklab, #8b5cf6 10%, white) 100%
+  );
+
+  --background: oklch(0.985 0.004 264);
+  --foreground: oklch(0.29 0.045 268);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.29 0.045 268);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.29 0.045 268);
+  --primary: oklch(0.585 0.205 266);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --secondary: oklch(0.965 0.01 262);
+  --secondary-foreground: oklch(0.34 0.05 268);
+  --muted: oklch(0.965 0.01 262);
+  --muted-foreground: oklch(0.555 0.032 268);
+  --accent: oklch(0.63 0.185 295);
+  --accent-foreground: oklch(0.99 0.005 250);
+  --destructive: oklch(0.62 0.19 22);
+  --border: oklch(0.925 0.012 264);
+  --input: oklch(0.905 0.014 264);
+  --ring: oklch(0.63 0.16 266);
+  --chart-1: oklch(0.6 0.2 264);
+  --chart-2: oklch(0.64 0.18 294);
+  --chart-3: oklch(0.76 0.12 200);
+  --chart-4: oklch(0.83 0.16 92);
+  --chart-5: oklch(0.7 0.16 22);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.3 0.04 268);
+  --sidebar-primary: oklch(0.585 0.205 266);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.965 0.014 264);
+  --sidebar-accent-foreground: oklch(0.32 0.045 268);
+  --sidebar-border: oklch(0.925 0.012 264);
+  --sidebar-ring: oklch(0.63 0.16 266);
+}
+
+.dark {
+  --nq-soft: #12162c;
+  --nq-ink: #eef1ff;
+  --nq-muted: #a3acc9;
+  --nq-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in oklab, #4169ff 22%, #101427) 0%,
+    color-mix(in oklab, #8b5cf6 20%, #101427) 100%
+  );
+
+  --background: oklch(0.19 0.028 268);
+  --foreground: oklch(0.965 0.008 250);
+  --card: oklch(0.235 0.03 268);
+  --card-foreground: oklch(0.965 0.008 250);
+  --popover: oklch(0.235 0.03 268);
+  --popover-foreground: oklch(0.965 0.008 250);
+  --primary: oklch(0.72 0.16 266);
+  --primary-foreground: oklch(0.17 0.03 259);
+  --secondary: oklch(0.29 0.032 268);
+  --secondary-foreground: oklch(0.95 0.008 250);
+  --muted: oklch(0.28 0.03 268);
+  --muted-foreground: oklch(0.735 0.026 262);
+  --accent: oklch(0.74 0.15 295);
+  --accent-foreground: oklch(0.17 0.03 259);
+  --destructive: oklch(0.68 0.19 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.68 0.14 266);
+  --chart-1: oklch(0.72 0.16 266);
+  --chart-2: oklch(0.74 0.15 295);
+  --chart-3: oklch(0.78 0.12 200);
+  --chart-4: oklch(0.84 0.15 92);
+  --chart-5: oklch(0.72 0.16 22);
+  --sidebar: oklch(0.205 0.028 268);
+  --sidebar-foreground: oklch(0.95 0.008 250);
+  --sidebar-primary: oklch(0.72 0.16 266);
+  --sidebar-primary-foreground: oklch(0.17 0.03 259);
+  --sidebar-accent: oklch(0.28 0.032 268);
+  --sidebar-accent-foreground: oklch(0.95 0.008 250);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.68 0.14 266);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /*
+   * Fullscreen-safe shell: the app owns the whole viewport in browser
+   * fullscreen, in a home-screen PWA and on phones with dynamic toolbars.
+   */
+  html {
+    min-height: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+    font-variant-numeric: tabular-nums;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    isolation: isolate;
+  }
+  /* Keep the canvas painted when the document itself is fullscreen. */
+  html:fullscreen,
+  html:fullscreen body,
+  html:fullscreen #root {
+    background-color: var(--background);
+  }
+  html.lang-ar body {
+    font-family: var(--font-stack-arabic);
+    font-feature-settings: normal;
+    line-height: 1.85;
+  }
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+  html.lang-ar h1,
+  html.lang-ar h2,
+  html.lang-ar h3 {
+    letter-spacing: normal;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--nq-blue) 22%, transparent);
+  }
+}
+
+@layer components {
+  /* ------------------------------ surfaces ------------------------------- */
+  .surface {
+    @apply rounded-xl border border-border/70 bg-card shadow-[0_1px_2px_rgb(23_27_56/0.04),0_10px_30px_-20px_rgb(23_27_56/0.28)];
+  }
+  .surface-muted {
+    @apply rounded-xl border border-border/60 bg-muted/40;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-secondary/70 px-2.5 py-0.5 text-xs font-medium text-secondary-foreground;
+  }
+
+  /* The student-facing card: soft, layered, and quietly luminous. */
+  .nq-card {
+    @apply relative rounded-2xl border border-border/70 bg-card;
+    box-shadow:
+      0 1px 2px rgb(23 27 56 / 0.04),
+      0 16px 40px -28px rgb(65 105 255 / 0.45);
+  }
+  .nq-card-hover {
+    @apply transition-[transform,box-shadow,border-color] duration-300 ease-out;
+  }
+  .nq-card-hover:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--nq-blue) 30%, var(--border));
+    box-shadow:
+      0 2px 4px rgb(23 27 56 / 0.05),
+      0 24px 48px -26px color-mix(in oklab, var(--nq-blue) 60%, transparent);
+  }
+
+  /* Brand gradients */
+  .nq-gradient {
+    background-image: var(--nq-gradient);
+  }
+  .nq-gradient-soft {
+    background-image: var(--nq-gradient-soft);
+  }
+  .nq-text-gradient {
+    background-image: var(--nq-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .nq-hero {
+    background:
+      radial-gradient(
+        70% 90% at 8% 0%,
+        color-mix(in oklab, var(--nq-blue) 26%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        60% 80% at 96% 6%,
+        color-mix(in oklab, var(--nq-violet) 30%, transparent),
+        transparent 66%
+      ),
+      radial-gradient(
+        40% 60% at 70% 100%,
+        color-mix(in oklab, var(--nq-turquoise) 22%, transparent),
+        transparent 70%
+      ),
+      linear-gradient(160deg, #171b38 0%, #1d2450 52%, #241c4d 100%);
+  }
+  .nq-hero-light {
+    background:
+      radial-gradient(
+        60% 80% at 0% 0%,
+        color-mix(in oklab, var(--nq-blue) 14%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        50% 70% at 100% 0%,
+        color-mix(in oklab, var(--nq-violet) 16%, transparent),
+        transparent 62%
+      ),
+      linear-gradient(180deg, #ffffff 0%, #f7f8fc 100%);
+  }
+  /* Faint dot matrix used behind hero copy. */
+  .nq-dots::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+      color-mix(in oklab, #ffffff 22%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+    mask-image: radial-gradient(70% 70% at 30% 20%, #000 20%, transparent 78%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Sidebar navigation */
+  .nq-nav-active {
+    background-image: var(--nq-gradient);
+    color: #fff;
+    box-shadow:
+      0 8px 20px -12px color-mix(in oklab, var(--nq-blue) 80%, transparent),
+      inset 0 1px 0 rgb(255 255 255 / 0.22);
+  }
+
+  /* Animated conic ring used for scores and levels. */
+  .nq-ring {
+    --nq-ring-value: 0;
+    background: conic-gradient(
+      from -90deg,
+      #4169ff 0%,
+      #8b5cf6 calc(var(--nq-ring-value) * 1%),
+      color-mix(in oklab, var(--border) 90%, transparent) calc(var(--nq-ring-value) * 1%),
+      color-mix(in oklab, var(--border) 90%, transparent) 100%
+    );
+  }
+
+  .hero-glow {
+    background:
+      radial-gradient(
+        60% 60% at 15% 10%,
+        color-mix(in oklab, var(--primary) 16%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        50% 50% at 85% 0%,
+        color-mix(in oklab, var(--accent) 14%, transparent),
+        transparent 70%
+      );
+  }
+  .grid-lines {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  /* Cards that react to the pointer: a small lift plus a warmer ring. */
+  .surface-hover {
+    @apply transition-[transform,box-shadow,border-color] duration-200 ease-out;
+  }
+  .surface-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+    box-shadow:
+      0 2px 4px rgb(23 27 56 / 0.05),
+      0 18px 40px -22px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+
+  .text-gradient {
+    background: linear-gradient(
+      100deg,
+      var(--primary),
+      color-mix(in oklab, var(--accent) 85%, var(--primary))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@layer utilities {
+  @keyframes noqta-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes noqta-pop {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.04);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes noqta-sheen {
+    0% {
+      background-position: -120% 0;
+    }
+    100% {
+      background-position: 220% 0;
+    }
+  }
+  @keyframes nq-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translate3d(0, -14px, 0) scale(1.04);
+      opacity: 0.8;
+    }
+  }
+  @keyframes nq-twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+  @keyframes nq-shimmer {
+    0% {
+      transform: translateX(-120%);
+    }
+    100% {
+      transform: translateX(220%);
+    }
+  }
+  @keyframes nq-pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--nq-blue) 45%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 12px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .animate-float {
+    animation: noqta-float 3.5s ease-in-out infinite;
+  }
+  .animate-pop {
+    animation: noqta-pop 0.35s ease-out both;
+  }
+  /* Sweeping highlight used on celebratory banners and score chips. */
+  .animate-sheen {
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in oklab, var(--primary) 22%, transparent) 50%,
+      transparent 80%
+    );
+    background-size: 200% 100%;
+    animation: noqta-sheen 2.4s ease-in-out infinite;
+  }
+
+  .animate-drift {
+    animation: nq-drift 9s ease-in-out infinite;
+  }
+  .animate-twinkle {
+    animation: nq-twinkle 2.6s ease-in-out infinite;
+  }
+  .animate-pulse-ring {
+    animation: nq-pulse-ring 2.2s ease-out infinite;
+  }
+  /* One sweep across a card, on hover only. */
+  .nq-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .nq-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgb(255 255 255 / 0.35) 50%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .nq-sheen:hover::after {
+    animation: nq-shimmer 1.1s ease-out;
+  }
+
+  /* Keeps content clear of the notch in landscape on installed phones. */
+  .nq-safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .nq-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--border) 80%, transparent) transparent;
+  }
+}
+
+@media (display-mode: fullscreen), (display-mode: standalone) {
+  /* No rubber-band bounce against the app edge once chrome is gone. */
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  /* The deliberate print buttons on result pages must not print the shield. */
+  .nq-shield {
+    display: none !important;
+  }
+}
+
+/*
+ * Content protection for students and teachers (see ContentGuard).
+ * Typing fields stay selectable so nobody loses the ability to edit an answer.
+ */
+html.nq-guarded body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html.nq-guarded input,
+html.nq-guarded textarea,
+html.nq-guarded [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html.nq-guarded img {
+  -webkit-user-drag: none;
+}
+
+
+.nq-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  color: #fff;
+  background: color-mix(in oklab, var(--nq-navy) 96%, transparent);
+  backdrop-filter: blur(18px);
+}
