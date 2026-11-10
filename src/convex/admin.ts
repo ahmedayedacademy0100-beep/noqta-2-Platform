@@ -38,6 +38,26 @@ export const profileFor = internalQuery({
   },
 });
 
+/**
+ * CLI-only maintenance hook (never callable from the app): turns the landing
+ * page sections on or off without opening a browser session.
+ */
+export const setLandingSectionsInternal = internalMutation({
+  args: {
+    features: v.boolean(),
+    demo: v.boolean(),
+    games: v.boolean(),
+    steps: v.boolean(),
+    stats: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const settings = await ctx.db.query("platform_settings").first();
+    if (!settings) return { ok: false, reason: "no-settings" };
+    await ctx.db.patch(settings._id, { landingSections: args });
+    return { ok: true };
+  },
+});
+
 export const recordPasswordReset = internalMutation({
   args: { actorId: v.id("users"), targetUserId: v.id("users") },
   handler: async (ctx, args) => {
@@ -477,6 +497,88 @@ export const updateSettings = mutation({
     adsEnabled: v.optional(v.boolean()),
     adsensePublisherId: v.optional(v.string()),
     adsenseSlotId: v.optional(v.string()),
+    /* Public landing page */
+    landingEnabled: v.optional(v.boolean()),
+    landingHeadlineEn: v.optional(v.string()),
+    landingHeadlineAr: v.optional(v.string()),
+    landingSubtitleEn: v.optional(v.string()),
+    landingSubtitleAr: v.optional(v.string()),
+    landingCtaEn: v.optional(v.string()),
+    landingCtaAr: v.optional(v.string()),
+    /** Owner-edited questions for the four landing-page games. */
+    landingGames: v.optional(
+      v.object({
+        memory: v.optional(v.array(v.object({ left: v.string(), right: v.string() }))),
+        sprint: v.optional(
+          v.array(
+            v.object({
+              promptEn: v.string(),
+              promptAr: v.string(),
+              options: v.array(v.object({ en: v.string(), ar: v.string() })),
+              correct: v.number(),
+            }),
+          ),
+        ),
+        situations: v.optional(
+          v.array(
+            v.object({
+              titleEn: v.string(),
+              titleAr: v.string(),
+              phrases: v.array(v.object({ en: v.string(), ar: v.string() })),
+            }),
+          ),
+        ),
+        daily: v.optional(v.array(v.object({ en: v.string(), ar: v.string() }))),
+        sentence: v.optional(
+          v.array(v.object({ sentenceEn: v.string(), sentenceAr: v.string() })),
+        ),
+        odd: v.optional(
+          v.array(
+            v.object({
+              promptEn: v.string(),
+              promptAr: v.string(),
+              options: v.array(v.object({ en: v.string(), ar: v.string() })),
+              correct: v.number(),
+            }),
+          ),
+        ),
+        gap: v.optional(
+          v.array(
+            v.object({
+              sentenceEn: v.string(),
+              sentenceAr: v.string(),
+              options: v.array(v.object({ en: v.string(), ar: v.string() })),
+              correct: v.number(),
+            }),
+          ),
+        ),
+      }),
+    ),
+    /** Owner-supplied artwork (image URL) for each landing game card. */
+    landingGameImages: v.optional(
+      v.object({
+        memory: v.optional(v.string()),
+        sprint: v.optional(v.string()),
+        situations: v.optional(v.string()),
+        daily: v.optional(v.string()),
+        sentence: v.optional(v.string()),
+        odd: v.optional(v.string()),
+        gap: v.optional(v.string()),
+      }),
+    ),
+    landingSections: v.optional(
+      v.object({
+        features: v.boolean(),
+        demo: v.boolean(),
+        games: v.boolean(),
+        steps: v.boolean(),
+        stats: v.boolean(),
+      }),
+    ),
+    /** Owner-edited landing page copy (key = i18n key). */
+    landingCopy: v.optional(
+      v.array(v.object({ key: v.string(), en: v.string(), ar: v.string() })),
+    ),
     gradingScale: v.optional(
       v.array(
         v.object({
@@ -521,6 +623,15 @@ export const updateSettings = mutation({
       patch.schoolNameAr = args.schoolNameAr.trim();
     }
     if (args.logoUrl !== undefined) patch.logoUrl = args.logoUrl.trim() || undefined;
+    if (args.landingCopy !== undefined) {
+      patch.landingCopy = args.landingCopy
+        .map((entry) => ({
+          key: entry.key.trim(),
+          en: entry.en,
+          ar: entry.ar,
+        }))
+        .filter((entry) => entry.key.length > 0);
+    }
     if (args.logoStorageId !== undefined) {
       if (args.logoStorageId === null) {
         if (settings.logoStorageId) {
@@ -610,6 +721,130 @@ export const updateSettings = mutation({
         );
       }
       patch.adsenseSlotId = slotId || undefined;
+    }
+    if (args.landingEnabled !== undefined) {
+      patch.landingEnabled = args.landingEnabled;
+    }
+    for (const [field, value, max] of [
+      ["landingHeadlineEn", args.landingHeadlineEn, 140],
+      ["landingHeadlineAr", args.landingHeadlineAr, 140],
+      ["landingSubtitleEn", args.landingSubtitleEn, 260],
+      ["landingSubtitleAr", args.landingSubtitleAr, 260],
+      ["landingCtaEn", args.landingCtaEn, 40],
+      ["landingCtaAr", args.landingCtaAr, 40],
+    ] as const) {
+      if (value === undefined) continue;
+      const text = value.trim();
+      if (text.length > max) {
+        deny(
+          ERROR_CODES.INVALID,
+          "That landing page text is too long.",
+          "نص صفحة الهبوط أطول من المسموح.",
+        );
+      }
+      patch[field] = text || undefined;
+    }
+    if (args.landingGames !== undefined) {
+      const games = args.landingGames;
+      patch.landingGames = {
+        memory: (games.memory ?? [])
+          .map((pair) => ({ left: pair.left.trim(), right: pair.right.trim() }))
+          .filter((pair) => pair.left.length > 0 && pair.right.length > 0)
+          .slice(0, 12),
+        sprint: (games.sprint ?? [])
+          .map((question) => {
+            const options = question.options
+              .map((option) => ({ en: option.en.trim(), ar: option.ar.trim() }))
+              .filter((option) => option.en.length > 0 || option.ar.length > 0)
+              .slice(0, 4);
+            return {
+              promptEn: question.promptEn.trim(),
+              promptAr: question.promptAr.trim(),
+              options,
+              correct:
+                question.correct >= 0 && question.correct < options.length ? question.correct : 0,
+            };
+          })
+          .filter((question) => question.promptEn.length > 0 || question.promptAr.length > 0)
+          .filter((question) => question.options.length >= 2)
+          .slice(0, 20),
+        situations: (games.situations ?? [])
+          .map((situation) => ({
+            titleEn: situation.titleEn.trim(),
+            titleAr: situation.titleAr.trim(),
+            phrases: situation.phrases
+              .map((phrase) => ({ en: phrase.en.trim(), ar: phrase.ar.trim() }))
+              .filter((phrase) => phrase.en.length > 0 && phrase.ar.length > 0)
+              .slice(0, 8),
+          }))
+          .filter((situation) => situation.titleEn.length > 0 || situation.titleAr.length > 0)
+          .filter((situation) => situation.phrases.length >= 2)
+          .slice(0, 8),
+        daily: (games.daily ?? [])
+          .map((phrase) => ({ en: phrase.en.trim(), ar: phrase.ar.trim() }))
+          .filter((phrase) => phrase.en.length > 0 && phrase.ar.length > 0)
+          .slice(0, 40),
+        sentence: (games.sentence ?? [])
+          .map((item) => ({ sentenceEn: item.sentenceEn.trim(), sentenceAr: item.sentenceAr.trim() }))
+          .filter((item) => item.sentenceEn.split(/\s+/).filter(Boolean).length >= 2)
+          .slice(0, 20),
+        odd: (games.odd ?? [])
+          .map((item) => {
+            const options = item.options
+              .map((option) => ({ en: option.en.trim(), ar: option.ar.trim() }))
+              .filter((option) => option.en.length > 0)
+              .slice(0, 4);
+            return {
+              promptEn: item.promptEn.trim(),
+              promptAr: item.promptAr.trim(),
+              options,
+              correct: item.correct >= 0 && item.correct < options.length ? item.correct : 0,
+            };
+          })
+          .filter((item) => item.options.length >= 3)
+          .slice(0, 20),
+        gap: (games.gap ?? [])
+          .map((item) => {
+            const options = item.options
+              .map((option) => ({ en: option.en.trim(), ar: option.ar.trim() }))
+              .filter((option) => option.en.length > 0)
+              .slice(0, 4);
+            return {
+              sentenceEn: item.sentenceEn.trim(),
+              sentenceAr: item.sentenceAr.trim(),
+              options,
+              correct: item.correct >= 0 && item.correct < options.length ? item.correct : 0,
+            };
+          })
+          .filter((item) => item.sentenceEn.length > 0 && item.options.length >= 2)
+          .slice(0, 20),
+      };
+    }
+    if (args.landingGameImages !== undefined) {
+      const images = args.landingGameImages;
+      const cleaned: Record<string, string | undefined> = {};
+      for (const key of ["memory", "sprint", "situations", "daily", "sentence", "odd", "gap"] as const) {
+        const value = (images[key] ?? "").trim();
+        if (value.length > 800) {
+          deny(
+            ERROR_CODES.INVALID,
+            "That image link is too long.",
+            "رابط الصورة أطول من المسموح.",
+          );
+        }
+        if (value && !/^https?:\/\//i.test(value)) {
+          deny(
+            ERROR_CODES.INVALID,
+            "Image links must start with http:// or https://.",
+            "رابط الصورة يجب أن يبدأ بـ http:// أو https://.",
+          );
+        }
+        cleaned[key] = value || undefined;
+      }
+      patch.landingGameImages = cleaned;
+    }
+    if (args.landingSections !== undefined) {
+      patch.landingSections = { ...args.landingSections };
     }
     if (args.gradingScale !== undefined) {
       if (args.gradingScale.length === 0) {

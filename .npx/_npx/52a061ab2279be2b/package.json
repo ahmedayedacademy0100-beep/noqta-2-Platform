@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "dotenv": "^18.0.9"
+  },
+  "_npx": {
+    "packages": [
+      "dotenv"
+    ]
+  }
+}

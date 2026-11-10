@@ -467,12 +467,24 @@ export const duplicateQuestion = mutation({
     if (!bank) deny(ERROR_CODES.NOT_FOUND, "Bank not found.", "لم يتم العثور على البنك.");
     assertBankEditable(bank, userId, profile.role);
     const now = Date.now();
-    const { _id, _creationTime, ...rest } = question;
     const id = await ctx.db.insert("questions", {
-      ...rest,
+      bankId: question.bankId,
+      ownerId: userId,
+      type: question.type,
       promptEn: `${question.promptEn} (copy)`,
       promptAr: `${question.promptAr} (نسخة)`,
-      ownerId: userId,
+      instructionsEn: question.instructionsEn,
+      instructionsAr: question.instructionsAr,
+      imageUrl: question.imageUrl,
+      subjectId: question.subjectId,
+      topicId: question.topicId,
+      difficulty: question.difficulty,
+      defaultMarks: question.defaultMarks,
+      options: question.options,
+      acceptedAnswers: question.acceptedAnswers,
+      gradingMode: question.gradingMode,
+      feedbackEn: question.feedbackEn,
+      feedbackAr: question.feedbackAr,
       createdAt: now,
       updatedAt: now,
       archivedAt: undefined,

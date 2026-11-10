@@ -30,7 +30,7 @@ import { api } from "@/convex/_generated/api";
 import { useI18n } from "@/i18n";
 import { useMutation, useQuery } from "convex/react";
 import { Loader2, MessageCircle, Plus, UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 /**
@@ -49,13 +49,15 @@ function ClassWhatsappField({
   onSave: (value: string) => Promise<void>;
 }) {
   const { t } = useI18n();
-  const [value, setValue] = useState(initial);
-  useEffect(() => setValue(initial), [initial]);
+  // `edited` tracks only what the admin typed; otherwise the field follows the
+  // stored class number.
+  const [edited, setEdited] = useState<string | null>(null);
+  const value = edited ?? initial;
   return (
     <div className="flex items-center gap-2">
       <Input
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => setEdited(event.target.value)}
         placeholder="+201234567890"
         dir="ltr"
         inputMode="tel"
@@ -77,7 +79,7 @@ function ClassWhatsappField({
 }
 
 export default function AdminAcademics() {
-  const { t, pick, formatDate } = useI18n();
+  const { t, pick } = useI18n();
   const structure = useQuery(api.academics.structure, {});
   const [detailClassId, setDetailClassId] = useState<string | null>(null);
   const detail = useQuery(
@@ -870,7 +872,7 @@ export default function AdminAcademics() {
       </Dialog>
 
       <p className="text-xs text-muted-foreground">
-        {`${t("common.total")}: ${grades.length} ${t("admin.grades")} · ${subjects.length} ${t("teacher.subjects")} · ${classes.length} ${t("admin.classes")} · ${formatDate(Date.now())}`}
+        {`${t("common.total")}: ${grades.length} ${t("admin.grades")} · ${subjects.length} ${t("teacher.subjects")} · ${classes.length} ${t("admin.classes")}`}
       </p>
     </>
   );

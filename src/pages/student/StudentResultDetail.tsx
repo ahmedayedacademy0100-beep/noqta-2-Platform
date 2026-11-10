@@ -50,9 +50,15 @@ export default function StudentResultDetail() {
     } catch {
       // Private mode without storage: still show the single burst.
     }
-    setCelebrate(true);
-    const timer = window.setTimeout(() => setCelebrate(false), 4200);
-    return () => window.clearTimeout(timer);
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      setCelebrate(true);
+      timer = window.setTimeout(() => setCelebrate(false), 4200);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
   }, [passed, attemptId]);
 
   if (data === undefined) return <LoadingBlock />;

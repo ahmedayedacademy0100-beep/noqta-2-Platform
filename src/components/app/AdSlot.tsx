@@ -1,8 +1,22 @@
+/**
+ * Google AdSense unit.
+ *
+ * Renders only when the super admin switched ads on in Settings and BOTH the
+ * publisher id and the ad slot id are configured — an `<ins>` without a slot
+ * is never requested, because AdSense answers it with a "missing data-ad-slot"
+ * error and a permanently blank box.
+ *
+ * Super admins never see the slot themselves, so staff browsing the portal
+ * stay distraction-free and the school's own accounts do not burn impressions.
+ * The focused exam screen does not include this component, so ads can never
+ * appear inside a live assessment.
+ */
 import { api } from "@/convex/_generated/api";
 import { useProfile } from "@/hooks/use-profile";
 import { useI18n } from "@/i18n";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef } from "react";
+import { useLocation } from "react-router";
 
 declare global {
   interface Window {
@@ -12,10 +26,12 @@ declare global {
 
 const ADSENSE_SCRIPT_ID = "adsense-script";
 
-/** Inject the AdSense loader once per client id, per page load. */
+/** Inject the AdSense loader once per client id, per page load. The loader is
+ *  also present in index.html, so this only fills in if that tag is missing. */
 function ensureAdsenseScript(client: string) {
   if (typeof document === "undefined") return;
   if (document.getElementById(ADSENSE_SCRIPT_ID)) return;
+  if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
   const script = document.createElement("script");
   script.id = ADSENSE_SCRIPT_ID;
   script.async = true;
@@ -24,18 +40,6 @@ function ensureAdsenseScript(client: string) {
   document.head.appendChild(script);
 }
 
-/**
- * A Google AdSense unit.
- *
- * Renders only when the super admin switched ads on in Settings and a
- * publisher ID is configured — a fresh install never shows ads. Super admins
- * never see the slot themselves, so staff browsing the portal stay
- * distraction-free (and AdSense impressions are not wasted on the school's
- * own accounts).
- *
- * The focused exam-taking screen does not include this component, so ads can
- * never appear inside a live assessment.
- */
 export function AdSlot({
   className,
   format = "auto",
@@ -48,32 +52,90 @@ export function AdSlot({
   const { t } = useI18n();
   const { isAdmin } = useProfile();
   const status = useQuery(api.profiles.platformStatus);
-  const pushed = useRef(false);
+  const container = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const recordAdImpression = useMutation(api.analytics.recordAdImpression);
 
   const adsEnabled = status?.settings?.adsEnabled ?? false;
   const clientId = status?.settings?.adsensePublisherId ?? null;
   const slotId = status?.settings?.adsenseSlotId ?? null;
-  const visible = adsEnabled && clientId !== null && !isAdmin;
+  const visible = adsEnabled && clientId !== null && slotId !== null && !isAdmin;
 
   useEffect(() => {
     if (!visible || !clientId) return;
     ensureAdsenseScript(clientId);
   }, [visible, clientId]);
 
+  // One request per unit. AdSense stamps `data-adsbygoogle-status` on the
+  // <ins> it has processed, so checking the DOM (instead of a ref) also keeps
+  // React's StrictMode double-mount in development from pushing twice — a
+  // second push is what produces "already have ads in them" errors.
   useEffect(() => {
-    if (!visible || pushed.current) return;
-    pushed.current = true;
+    if (!visible) return;
+    const node = container.current?.querySelector<HTMLElement>("ins.adsbygoogle");
+    if (!node) return;
+    if (node.getAttribute("data-adsbygoogle-status")) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {
-      // The loader can be blocked by ad blockers — never break the page.
+      // The loader can be blocked by an ad blocker — never break the page.
     }
   }, [visible]);
 
-  if (!visible || clientId === null) return null;
+  // Count a real view: the unit must be at least half on screen AND actually
+  // filled by AdSense. Unfilled or blocked units record nothing, so the
+  // owner's numbers reflect served ads rather than empty boxes.
+  useEffect(() => {
+    if (!visible) return;
+    const node = container.current?.querySelector<HTMLElement>("ins.adsbygoogle");
+    if (!node) return;
+    const key = `nq.ad.${location.pathname}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+    } catch {
+      // Storage unavailable: still measure the current view.
+    }
+
+    let counted = false;
+    const count = () => {
+      if (counted) return;
+      if (node.getAttribute("data-ad-status") !== "filled") return;
+      counted = true;
+      try {
+        window.sessionStorage.setItem(key, "1");
+      } catch {
+        // Ignore storage failures.
+      }
+      void recordAdImpression({}).catch(() => undefined);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        count();
+        if (counted) observer.disconnect();
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(node);
+
+    // The unit usually fills after the observer fires, so wait for the status.
+    const watcher = new MutationObserver(count);
+    watcher.observe(node, {
+      attributes: true,
+      attributeFilter: ["data-ad-status"],
+    });
+
+    return () => {
+      observer.disconnect();
+      watcher.disconnect();
+    };
+  }, [visible, location.pathname, recordAdImpression]);
+
+  if (!visible || clientId === null || slotId === null) return null;
 
   return (
-    <div className={className}>
+    <div ref={container} className={className}>
       <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground/60">
         {t("common.ad")}
       </p>
@@ -81,7 +143,7 @@ export function AdSlot({
         className="adsbygoogle block"
         style={{ minHeight }}
         data-ad-client={clientId}
-        data-ad-slot={slotId ?? undefined}
+        data-ad-slot={slotId}
         data-ad-format={format}
         data-full-width-responsive="true"
       />

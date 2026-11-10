@@ -35,7 +35,7 @@ export function normalizeAnswer(value: string): string {
     .replace(/\u0629/g, "\u0647") // ta marbuta
     .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    .replace(/[.,!?;:،؛؟'"()\[\]{}]/g, "")
+    .replace(/[.,!?;:،؛؟'"()[\]{}]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

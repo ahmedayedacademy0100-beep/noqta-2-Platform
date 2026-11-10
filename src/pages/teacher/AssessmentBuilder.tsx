@@ -32,7 +32,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import { useI18n } from "@/i18n";
-import { describeError } from "@/lib/errors";
 import { fromDateInputValue, toDateInputValue } from "@/lib/format";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -52,7 +51,7 @@ import {
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 
@@ -89,12 +88,13 @@ export default function AssessmentBuilder() {
   const [pickedQuestions, setPickedQuestions] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    if (!detail || hydrated) return;
+  // Mirror the saved assignments into the editable pickers once, during render,
+  // instead of overwriting the teacher's choices on every query refresh.
+  if (detail && !hydrated) {
     setSelectedClasses(detail.classes.map((c) => c.classId as string));
     setSelectedStudents(detail.students.map((s) => s.studentId as string));
     setHydrated(true);
-  }, [detail, hydrated]);
+  }
 
   const subjects = structure?.subjects ?? [];
   const topics = structure?.topics ?? [];

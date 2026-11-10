@@ -1,0 +1,24 @@
+0 verbose cli /usr/local/nvm/versions/node/v26.13.0/bin/node /usr/local/nvm/versions/node/v26.13.0/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@11.20.0
+2 info using node@v26.13.0
+3 silly config load:file:/usr/local/nvm/versions/node/v26.13.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/workspace/chats/c2b6fe9d7bf98008aea96a12/.npmrc
+5 silly config load:file:/workspace/homes/c2b6fe9d7bf98008aea96a12/.npmrc
+6 silly config load:file:/usr/local/nvm/versions/node/v26.13.0/etc/npmrc
+7 verbose title npm exec npx --yes dotenv@latest run -f .env.local node -e console.log('CONVEX_DEPLOY_KEY',process.env.CONVEX_DEPLOY_KEY||'missing');console.log('VITE_CONVEX_URL',process.env.VITE_CONVEX_URL||'missing')
+8 verbose argv "exec" "--cache" "./.npx" "--" "npx" "--yes" "dotenv@latest" "run" "-f" ".env.local" "node" "-e" "console.log('CONVEX_DEPLOY_KEY',process.env.CONVEX_DEPLOY_KEY||'missing');console.log('VITE_CONVEX_URL',process.env.VITE_CONVEX_URL||'missing')"
+9 verbose logfile logs-max:10 dir:/workspace/chats/c2b6fe9d7bf98008aea96a12/.npx/_logs/2026-11-06T22_31_16_609Z-
+10 verbose logfile /workspace/chats/c2b6fe9d7bf98008aea96a12/.npx/_logs/2026-11-06T22_31_16_609Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET 200 https://registry.npmjs.org/npm 136ms
+13 verbose cwd /workspace/chats/c2b6fe9d7bf98008aea96a12
+14 verbose os Linux 6.1.102
+15 verbose node v26.13.0
+16 verbose npm  v11.20.0
+17 notice
+17 notice New major version of npm available! 11.20.0 -> 12.2.2
+17 notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+17 notice To update run: npm install -g npm@12.2.2
+17 notice  { force: true, Symbol(proc-log.meta): true }
+18 verbose exit 0
+19 info ok

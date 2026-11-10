@@ -29,7 +29,7 @@ import { describeError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { CheckCircle2, Clock, Loader2, RotateCcw, Send, XCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 
@@ -76,9 +76,11 @@ export default function GradingDetail() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    if (!data) return;
+  // Seed the editable marks once the attempt loads; queued during render so the
+  // teacher never sees an empty box for an already graded answer.
+  if (data && !hydrated) {
     setMarks((prev) => {
       const next = { ...prev };
       for (const item of data.items) {
@@ -96,7 +98,8 @@ export default function GradingDetail() {
       }
       return next;
     });
-  }, [data]);
+    setHydrated(true);
+  }
 
   const pendingItems = useMemo(
     () => (data ? data.items.filter((item) => item.needsManualGrading) : []),

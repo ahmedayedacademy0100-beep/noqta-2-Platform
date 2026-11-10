@@ -5,6 +5,7 @@ import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
 import {
   ERROR_CODES,
+  dayKey,
   deny,
   gradeLetterFor,
   requireRole,
@@ -319,6 +320,119 @@ export const home = query({
       subjectProgress,
       badges,
       calendar,
+    };
+  },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Gamification (real rewards only)                                            */
+/* -------------------------------------------------------------------------- */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Everything the student's reward surfaces need, read from what the platform
+ * actually recorded:
+ *
+ * - `achievements` mirrors the badge definitions with the moment this student
+ *   earned each one (`earnedAt: null` means still locked).
+ * - `challenges` counts real submissions today / in the last seven days and
+ *   the real streak, so a challenge can never claim progress that did not
+ *   happen. Rewards are the platform's own XP rules (10 per submission, the
+ *   badge points for the streak), not an extra invented currency.
+ * - `activity` is the submission count per day for the last seven days.
+ */
+export const gamification = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId, profile } = await requireRole(ctx, [ROLES.STUDENT]);
+    const now = Date.now();
+
+    const definitions = await ctx.db.query("achievements").collect();
+    const earnedRows = await ctx.db
+      .query("student_achievements")
+      .withIndex("by_student", (q) => q.eq("studentId", userId))
+      .collect();
+    const earnedByCode = new Map(
+      earnedRows.map((row) => [row.achievementCode, row.earnedAt]),
+    );
+
+    const attempts = await ctx.db
+      .query("attempts")
+      .withIndex("by_student", (q) => q.eq("studentId", userId))
+      .collect();
+    const submitted = attempts.filter((attempt) => attempt.submittedAt);
+    const today = dayKey(now);
+    const weekFloor = now - 7 * DAY_MS;
+
+    const submittedToday = submitted.filter(
+      (attempt) => attempt.submittedAt !== undefined && dayKey(attempt.submittedAt) === today,
+    ).length;
+    const submittedThisWeek = submitted.filter(
+      (attempt) => (attempt.submittedAt ?? 0) >= weekFloor,
+    ).length;
+
+    const activity: { day: string; submitted: number }[] = [];
+    for (let offset = 6; offset >= 0; offset -= 1) {
+      const day = dayKey(now - offset * DAY_MS);
+      activity.push({
+        day,
+        submitted: submitted.filter(
+          (attempt) =>
+            attempt.submittedAt !== undefined && dayKey(attempt.submittedAt) === day,
+        ).length,
+      });
+    }
+
+    const achievements = definitions
+      .filter((definition) => definition.active)
+      .map((definition) => ({
+        code: definition.code,
+        icon: definition.icon,
+        titleEn: definition.titleEn,
+        titleAr: definition.titleAr,
+        descriptionEn: definition.descriptionEn,
+        descriptionAr: definition.descriptionAr,
+        points: definition.points,
+        earnedAt: earnedByCode.get(definition.code) ?? null,
+      }))
+      .sort((a, b) => {
+        if ((a.earnedAt ?? 0) === (b.earnedAt ?? 0)) return 0;
+        if (a.earnedAt && b.earnedAt) return b.earnedAt - a.earnedAt;
+        return a.earnedAt ? -1 : 1;
+      });
+
+    const earned = achievements.filter((row) => row.earnedAt !== null);
+
+    const streakDefinition = definitions.find((row) => row.code === "streak_3");
+
+    return {
+      points: profile.points,
+      streak: profile.streak,
+      achievements,
+      totals: {
+        earned: earned.length,
+        available: achievements.length,
+        badgePoints: earned.reduce((sum, row) => sum + row.points, 0),
+      },
+      challenges: {
+        daily: {
+          submitted: submittedToday,
+          target: 1,
+          rewardXp: 10,
+        },
+        weekly: {
+          submitted: submittedThisWeek,
+          target: 3,
+          rewardXp: 30,
+        },
+        streak: {
+          current: profile.streak,
+          target: 3,
+          rewardXp: streakDefinition?.points ?? 25,
+        },
+      },
+      activity,
     };
   },
 });
@@ -708,11 +822,16 @@ export const unreadCount = query({
     }
     if (!userId) return 0;
     try {
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId as Id<"users">))
+        .first();
+      const muted = new Set(profile?.mutedNotificationTypes ?? []);
       const rows = await ctx.db
         .query("notifications")
         .withIndex("by_user", (q) => q.eq("userId", userId as Id<"users">))
         .collect();
-      return rows.filter((n) => !n.readAt).length;
+      return rows.filter((n) => !n.readAt && !muted.has(n.type)).length;
     } catch {
       return 0;
     }

@@ -5,11 +5,15 @@ import { ERROR_CODES, deny, requireProfile } from "./lib/guards";
 export const list = query({
   args: { onlyUnread: v.optional(v.boolean()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const { userId } = await requireProfile(ctx);
-    const rows = await ctx.db
+    const { userId, profile } = await requireProfile(ctx);
+    const all = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
+    // An account can silence inbox types from the profile screen; honor it here
+    // so the preference changes what is actually listed, not just a toggle.
+    const muted = new Set(profile.mutedNotificationTypes ?? []);
+    const rows = muted.size === 0 ? all : all.filter((row) => !muted.has(row.type));
     const filtered = args.onlyUnread ? rows.filter((r) => !r.readAt) : rows;
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     return {
@@ -29,6 +33,7 @@ export const list = query({
         })),
       unread: rows.filter((r) => !r.readAt).length,
       total: rows.length,
+      muted: [...muted],
     };
   },
 });

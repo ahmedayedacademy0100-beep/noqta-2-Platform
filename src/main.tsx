@@ -1,10 +1,10 @@
 import "@vly-ai/integrations";
+import { AnalyticsTracker } from "@/components/app/AnalyticsTracker";
 import { AppShell } from "@/components/app/AppShell";
 import { BrandTheme } from "@/components/app/BrandTheme";
 import { ContentGuard } from "@/components/app/ContentGuard";
 import { RoleGuard } from "@/components/app/ui";
 import { Toaster } from "@/components/ui/sonner";
-import { useAuth } from "@/hooks/use-auth";
 import { I18nProvider } from "@/i18n";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
@@ -14,7 +14,6 @@ import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
-  Navigate,
   Route,
   Routes,
   useLocation,
@@ -22,6 +21,8 @@ import {
 import "./index.css";
 
 // Lazy load route components for better code splitting
+const LandingPage = lazy(() => import("./pages/Landing.tsx"));
+const PrivacyPage = lazy(() => import("@/pages/Privacy"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
@@ -39,11 +40,17 @@ const StudentResultDetail = lazy(
   () => import("./pages/student/StudentResultDetail.tsx"),
 );
 const StudentProgress = lazy(() => import("./pages/student/StudentProgress.tsx"));
+const StudentHomework = lazy(() => import("./pages/student/StudentHomework.tsx"));
+const StudentGames = lazy(() => import("./pages/student/StudentGames.tsx"));
+const StudentAchievements = lazy(
+  () => import("./pages/student/StudentAchievements.tsx"),
+);
 const TeacherAssessments = lazy(
   () => import("./pages/teacher/TeacherAssessments.tsx"),
 );
 const AssessmentBuilder = lazy(() => import("./pages/teacher/AssessmentBuilder.tsx"));
 const QuestionBank = lazy(() => import("./pages/teacher/QuestionBank.tsx"));
+const ClassGames = lazy(() => import("./pages/teacher/ClassGames.tsx"));
 const GradingQueue = lazy(() => import("./pages/teacher/GradingQueue.tsx"));
 const GradingDetail = lazy(() => import("./pages/teacher/GradingDetail.tsx"));
 const AssessmentAnalytics = lazy(
@@ -54,6 +61,7 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers.tsx"));
 const AdminAcademics = lazy(() => import("./pages/admin/AdminAcademics.tsx"));
 const AdminOversight = lazy(() => import("./pages/admin/AdminOversight.tsx"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports.tsx"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics.tsx"));
 const AdminAudit = lazy(() => import("./pages/admin/AdminAudit.tsx"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 
@@ -64,14 +72,6 @@ function RouteLoading() {
       <div className="animate-pulse text-sm text-muted-foreground">Loading…</div>
     </div>
   );
-}
-
-/** `/` is only a hop: there is no public landing page, so signed-in visitors go
- *  straight to their dashboard and everyone else lands on sign-in. */
-function RootRedirect() {
-  const { isLoading, isAuthenticated } = useAuth();
-  if (isLoading) return <RouteLoading />;
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/auth"} replace />;
 }
 
 /** Silent error boundary — if VlyToolbar crashes it renders nothing instead of
@@ -218,10 +218,13 @@ createRoot(document.getElementById("root")!).render(
             <BrowserRouter>
               <BrandTheme />
               <ContentGuard />
+              <AnalyticsTracker />
               <RouteSyncer />
               <Suspense fallback={<RouteLoading />}>
                 <Routes>
-                  <Route path="/" element={<RootRedirect />} />
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/landing" element={<LandingPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/onboarding" element={<Onboarding />} />
 
@@ -271,6 +274,30 @@ createRoot(document.getElementById("root")!).render(
                       element={
                         <Guarded roles={["student"]}>
                           <StudentProgress />
+                        </Guarded>
+                      }
+                    />
+                    <Route
+                      path="/homework"
+                      element={
+                        <Guarded roles={["student"]}>
+                          <StudentHomework />
+                        </Guarded>
+                      }
+                    />
+                    <Route
+                      path="/games"
+                      element={
+                        <Guarded roles={["student"]}>
+                          <StudentGames />
+                        </Guarded>
+                      }
+                    />
+                    <Route
+                      path="/achievements"
+                      element={
+                        <Guarded roles={["student"]}>
+                          <StudentAchievements />
                         </Guarded>
                       }
                     />
@@ -331,6 +358,14 @@ createRoot(document.getElementById("root")!).render(
                         </Guarded>
                       }
                     />
+                    <Route
+                      path="/teacher/games"
+                      element={
+                        <Guarded roles={["teacher", "super_admin"]}>
+                          <ClassGames />
+                        </Guarded>
+                      }
+                    />
 
                     <Route
                       path="/admin/users"
@@ -361,6 +396,14 @@ createRoot(document.getElementById("root")!).render(
                       element={
                         <Guarded roles={["super_admin"]}>
                           <AdminReports />
+                        </Guarded>
+                      }
+                    />
+                    <Route
+                      path="/admin/analytics"
+                      element={
+                        <Guarded roles={["super_admin"]}>
+                          <AdminAnalytics />
                         </Guarded>
                       }
                     />

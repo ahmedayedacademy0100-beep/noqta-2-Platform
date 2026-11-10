@@ -1,7 +1,5 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
 import { assignedStudentIds } from "./assessments";
 import { finalizeAttempt } from "./attempts";
 import { autoGrade } from "./lib/grading";

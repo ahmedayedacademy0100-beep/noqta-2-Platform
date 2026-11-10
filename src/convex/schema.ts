@@ -142,6 +142,10 @@ const schema = defineSchema(
       isDemo: v.boolean(),
       points: v.number(),
       streak: v.number(),
+      /** Notification types this account silenced in its own inbox. */
+      mutedNotificationTypes: v.optional(v.array(v.string())),
+      /** Student-chosen avatar id (see src/lib/avatars.ts). */
+      avatar: v.optional(v.string()),
       lastActiveDay: v.optional(v.string()), // YYYY-MM-DD
       createdAt: v.number(),
       updatedAt: v.number(),
@@ -184,6 +188,96 @@ const schema = defineSchema(
       adsEnabled: v.optional(v.boolean()),
       adsensePublisherId: v.optional(v.string()),
       adsenseSlotId: v.optional(v.string()),
+      /* Public landing page — copy and sections are owner-controlled. */
+      landingEnabled: v.optional(v.boolean()),
+      landingHeadlineEn: v.optional(v.string()),
+      landingHeadlineAr: v.optional(v.string()),
+      landingSubtitleEn: v.optional(v.string()),
+      landingSubtitleAr: v.optional(v.string()),
+      landingCtaEn: v.optional(v.string()),
+      landingCtaAr: v.optional(v.string()),
+      /** Owner-edited content for the four landing-page games. */
+      landingGames: v.optional(
+        v.object({
+          memory: v.optional(
+            v.array(v.object({ left: v.string(), right: v.string() })),
+          ),
+          sprint: v.optional(
+            v.array(
+              v.object({
+                promptEn: v.string(),
+                promptAr: v.string(),
+                options: v.array(v.object({ en: v.string(), ar: v.string() })),
+                correct: v.number(),
+              }),
+            ),
+          ),
+          situations: v.optional(
+            v.array(
+              v.object({
+                titleEn: v.string(),
+                titleAr: v.string(),
+                phrases: v.array(v.object({ en: v.string(), ar: v.string() })),
+              }),
+            ),
+          ),
+          daily: v.optional(v.array(v.object({ en: v.string(), ar: v.string() }))),
+          sentence: v.optional(
+            v.array(v.object({ sentenceEn: v.string(), sentenceAr: v.string() })),
+          ),
+          odd: v.optional(
+            v.array(
+              v.object({
+                promptEn: v.string(),
+                promptAr: v.string(),
+                options: v.array(v.object({ en: v.string(), ar: v.string() })),
+                correct: v.number(),
+              }),
+            ),
+          ),
+          gap: v.optional(
+            v.array(
+              v.object({
+                sentenceEn: v.string(),
+                sentenceAr: v.string(),
+                options: v.array(v.object({ en: v.string(), ar: v.string() })),
+                correct: v.number(),
+              }),
+            ),
+          ),
+        }),
+      ),
+      /** Owner-supplied artwork for each landing game card (image URL). */
+      landingGameImages: v.optional(
+        v.object({
+          memory: v.optional(v.string()),
+          sprint: v.optional(v.string()),
+          situations: v.optional(v.string()),
+          daily: v.optional(v.string()),
+          sentence: v.optional(v.string()),
+          odd: v.optional(v.string()),
+          gap: v.optional(v.string()),
+        }),
+      ),
+      landingSections: v.optional(
+        v.object({
+          features: v.boolean(),
+          demo: v.boolean(),
+          games: v.boolean(),
+          steps: v.boolean(),
+          stats: v.boolean(),
+        }),
+      ),
+      /** Owner-edited copy for the landing page (key = i18n key). */
+      landingCopy: v.optional(
+        v.array(
+          v.object({
+            key: v.string(),
+            en: v.string(),
+            ar: v.string(),
+          }),
+        ),
+      ),
       updatedAt: v.number(),
       updatedBy: v.optional(v.id("users")),
     }),
@@ -467,6 +561,56 @@ const schema = defineSchema(
       .index("by_user_read", ["userId", "readAt"]),
 
     /* ------------------------------ gamification --------------------------- */
+    /* ------------------------- class games (teacher) ------------------------ */
+    class_games: defineTable({
+      ownerId: v.id("users"),
+      classId: v.id("classes"),
+      titleEn: v.string(),
+      titleAr: v.string(),
+      status: v.union(v.literal("open"), v.literal("closed")),
+      gameType: v.optional(
+        v.union(
+          v.literal("quiz"),
+          v.literal("sprint"),
+          v.literal("situations"),
+          v.literal("daily"),
+        ),
+      ),
+      questions: v.array(
+        v.object({
+          promptEn: v.string(),
+          promptAr: v.string(),
+          phraseEn: v.optional(v.string()),
+          options: v.array(
+            v.object({
+              textEn: v.string(),
+              textAr: v.string(),
+              emoji: v.optional(v.string()),
+            }),
+          ),
+          correctIndex: v.number(),
+        }),
+      ),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      closedAt: v.optional(v.number()),
+    })
+      .index("by_class", ["classId"])
+      .index("by_owner", ["ownerId"])
+      .index("by_status", ["status"]),
+
+    class_game_runs: defineTable({
+      gameId: v.id("class_games"),
+      classId: v.id("classes"),
+      studentId: v.id("users"),
+      score: v.number(),
+      total: v.number(),
+      submittedAt: v.number(),
+    })
+      .index("by_game", ["gameId"])
+      .index("by_game_student", ["gameId", "studentId"])
+      .index("by_student", ["studentId"]),
+
     achievements: defineTable({
       code: v.string(),
       titleEn: v.string(),
@@ -504,6 +648,24 @@ const schema = defineSchema(
       .index("by_created", ["createdAt"])
       .index("by_actor", ["actorId"])
       .index("by_entity", ["entity", "entityId"]),
+
+    /* --------------------------- usage analytics ---------------------------- */
+    /** One row per day, metric kind and scope. `scopeId` is "all" for the
+     *  platform-wide total, a class id, or a user id for teachers. */
+    analytics_daily: defineTable({
+      day: v.string(), // YYYY-MM-DD (UTC)
+      kind: v.union(v.literal("visit"), v.literal("ad")),
+      scope: v.union(
+        v.literal("platform"),
+        v.literal("class"),
+        v.literal("teacher"),
+      ),
+      scopeId: v.string(),
+      count: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_key", ["day", "kind", "scope", "scopeId"])
+      .index("by_day", ["day"]),
 
     /* ------------------------------- invites ------------------------------- */
     invite_codes: defineTable({

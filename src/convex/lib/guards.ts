@@ -316,6 +316,14 @@ export function defaultsForSettings() {
     leaderboardsEnabled: false,
     notificationsEnabled: true,
     demoDataLoaded: false,
+    landingEnabled: true,
+    landingSections: {
+      features: true,
+      demo: true,
+      games: true,
+      steps: true,
+      stats: true,
+    },
   };
 }
 

@@ -21,6 +21,7 @@ import { useI18n, type Language } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import {
+  Activity,
   Bell,
   BookOpenCheck,
   CalendarClock,
@@ -28,17 +29,22 @@ import {
   ChevronDown,
   ClipboardList,
   Cog,
+  Gamepad2,
   GraduationCap,
   LayoutDashboard,
   Loader2,
   LogOut,
   Menu,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   PenLine,
   ScrollText,
   ShieldCheck,
   Sparkles,
   Sun,
+  Target,
+  Trophy,
   UserRound,
   Users,
   type LucideIcon,
@@ -63,8 +69,11 @@ function navItemsFor(role: ProfileRole): NavItem[] {
     return [
       { to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
       { to: "/assessments", labelKey: "nav.assessments", icon: ClipboardList },
-      { to: "/results", labelKey: "nav.results", icon: BookOpenCheck },
+      { to: "/homework", labelKey: "nav.homework", icon: BookOpenCheck },
+      { to: "/games", labelKey: "nav.games", icon: Gamepad2 },
       { to: "/progress", labelKey: "nav.progress", icon: ChartLine },
+      { to: "/achievements", labelKey: "nav.achievements", icon: Trophy },
+      { to: "/results", labelKey: "nav.results", icon: Target },
       { to: "/notifications", labelKey: "nav.notifications", icon: Bell },
       { to: "/profile", labelKey: "nav.profile", icon: UserRound },
     ];
@@ -76,6 +85,7 @@ function navItemsFor(role: ProfileRole): NavItem[] {
       { to: "/teacher/question-bank", labelKey: "nav.teacher.question_bank", icon: BookOpenCheck },
       { to: "/teacher/grading", labelKey: "nav.teacher.grading", icon: PenLine },
       { to: "/teacher/students", labelKey: "nav.teacher.students", icon: Users },
+      { to: "/teacher/games", labelKey: "nav.teacher.games", icon: Gamepad2 },
       { to: "/notifications", labelKey: "nav.notifications", icon: Bell },
       { to: "/profile", labelKey: "nav.profile", icon: UserRound },
     ];
@@ -86,6 +96,7 @@ function navItemsFor(role: ProfileRole): NavItem[] {
     { to: "/admin/academics", labelKey: "nav.admin.academics", icon: GraduationCap },
     { to: "/admin/oversight", labelKey: "nav.admin.oversight", icon: ShieldCheck },
     { to: "/admin/reports", labelKey: "nav.admin.reports", icon: ChartLine },
+    { to: "/admin/analytics", labelKey: "nav.admin.analytics", icon: Activity },
     { to: "/admin/audit", labelKey: "nav.admin.audit", icon: ScrollText },
     { to: "/admin/settings", labelKey: "nav.admin.settings", icon: Cog },
     { to: "/notifications", labelKey: "nav.notifications", icon: Bell },
@@ -96,22 +107,27 @@ function navItemsFor(role: ProfileRole): NavItem[] {
 function NavList({
   role,
   onNavigate,
+  collapsed = false,
 }: {
   role: ProfileRole;
   onNavigate?: () => void;
+  collapsed?: boolean;
 }) {
   const { t } = useI18n();
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className={cn("flex flex-col gap-1", collapsed && "items-stretch")}>
       {navItemsFor(role).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end={item.end}
           onClick={onNavigate}
+          title={collapsed ? t(item.labelKey) : undefined}
+          aria-label={t(item.labelKey)}
           className={({ isActive }) =>
             cn(
               "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200",
+              collapsed && "justify-center px-0",
               isActive
                 ? "text-white"
                 : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
@@ -135,13 +151,17 @@ function NavList({
                 )}
                 aria-hidden
               />
-              <span className="relative truncate">{t(item.labelKey)}</span>
-              {isActive ? (
-                <span
-                  className="relative ms-auto size-1.5 rounded-full bg-white/80"
-                  aria-hidden
-                />
-              ) : null}
+              {collapsed ? null : (
+                <>
+                  <span className="relative truncate">{t(item.labelKey)}</span>
+                  {isActive ? (
+                    <span
+                      className="relative ms-auto size-1.5 rounded-full bg-white/80"
+                      aria-hidden
+                    />
+                  ) : null}
+                </>
+              )}
             </>
           )}
         </NavLink>
@@ -168,7 +188,11 @@ function Brand({ schoolName }: { schoolName?: string }) {
     : t("app.tagline");
   const customLogo = Boolean(settings?.logoUrl);
   return (
-    <Link to="/dashboard" className="flex min-w-0 items-center gap-2.5">
+    <Link
+      to="/"
+      aria-label={name}
+      className="flex min-w-0 items-center gap-2.5 rounded-xl transition-opacity hover:opacity-85"
+    >
       <img
         src={settings?.logoUrl ?? logo}
         alt={name}
@@ -191,7 +215,7 @@ function Brand({ schoolName }: { schoolName?: string }) {
   );
 }
 
-export function LanguageToggle() {
+export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const { lang, setLanguage, t } = useI18n();
   const updateProfile = useMutation(api.profiles.updateMyProfile);
   const next: Language = lang === "ar" ? "en" : "ar";
@@ -208,7 +232,13 @@ export function LanguageToggle() {
       aria-label={t("common.language")}
     >
       <span className="text-xs font-semibold">{lang === "ar" ? "AR" : "EN"}</span>
-      <span className="text-xs text-muted-foreground">
+      <span
+        className={
+          compact
+            ? "hidden text-xs text-muted-foreground sm:inline"
+            : "text-xs text-muted-foreground"
+        }
+      >
         {lang === "ar" ? "العربية" : "English"}
       </span>
     </Button>
@@ -239,6 +269,22 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  /** Students can fold the sidebar down to icons; the choice is remembered. */
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem("nq.sidebar.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("nq.sidebar.collapsed", collapsed ? "1" : "0");
+    } catch {
+      // Storage is optional; the layout still works for this session.
+    }
+  }, [collapsed]);
   /** Set the moment we start signing out so no page query re-runs signed-out. */
   const [signingOut, setSigningOut] = useState(false);
   const unread = useQuery(api.student.unreadCount);
@@ -295,13 +341,50 @@ export function AppShell() {
   return (
     <div className="nq-safe-x min-h-dvh overflow-x-clip bg-background">
       <div className="mx-auto flex w-full max-w-[1600px] 2xl:max-w-[1840px]">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col justify-between border-e border-border/70 bg-sidebar/60 px-3 py-4 lg:flex 2xl:w-72">
+        <aside
+          className={cn(
+            "sticky top-0 hidden h-dvh shrink-0 flex-col justify-between border-e border-border/70 bg-sidebar/60 px-3 py-4 transition-[width] duration-300 lg:flex",
+            collapsed ? "w-[76px]" : "w-64 2xl:w-72",
+          )}
+        >
           <div className="space-y-6">
-            <Brand schoolName={schoolName} />
-            <NavList role={profile.role} />
+            {collapsed ? (
+              <Link
+                to="/dashboard"
+                className="mx-auto grid size-10 place-items-center rounded-xl bg-primary/10"
+                aria-label={schoolName}
+              >
+                <img src={logo} alt="" className="h-7 w-auto" aria-hidden />
+              </Link>
+            ) : (
+              <Brand schoolName={schoolName} />
+            )}
+            <NavList role={profile.role} collapsed={collapsed} />
+            {profile.role === "student" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCollapsed((value) => !value)}
+                className={cn(
+                  "w-full gap-2 text-muted-foreground",
+                  collapsed && "justify-center px-0",
+                )}
+                aria-label={collapsed ? t("nav.expand") : t("nav.collapse")}
+                title={collapsed ? t("nav.expand") : t("nav.collapse")}
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="size-4" aria-hidden />
+                ) : (
+                  <PanelLeftClose className="size-4" aria-hidden />
+                )}
+                {collapsed ? null : (
+                  <span className="text-xs">{t("nav.collapse")}</span>
+                )}
+              </Button>
+            ) : null}
           </div>
           <div className="space-y-3">
-            {profile.isDemo ? (
+            {profile.isDemo && !collapsed ? (
               <Badge
                 variant="outline"
                 className="w-full justify-center border-dashed border-chart-4/60 bg-chart-4/10 text-[10px] font-semibold tracking-wide text-chart-4 uppercase"
@@ -309,16 +392,23 @@ export function AppShell() {
                 {t("common.demo_badge")}
               </Badge>
             ) : null}
-            <div className="surface-muted flex items-center gap-3 p-3">
-              <span className="nq-gradient grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold text-white shadow-[0_6px_16px_-10px_rgb(65_105_255/0.9)]">
+            <div
+              className={cn(
+                "surface-muted flex items-center gap-3 p-3",
+                collapsed && "justify-center p-2",
+              )}
+            >
+              <span className="nq-gradient grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold text-white shadow-[0_6px_16px_-10px_rgb(52_120_246/0.9)]">
                 {profile.name.slice(0, 1).toUpperCase()}
               </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{profile.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {t(`roles.${profile.role}`)}
-                </p>
-              </div>
+              {collapsed ? null : (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{profile.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {t(`roles.${profile.role}`)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -475,7 +565,9 @@ export function AppShell() {
 
 function StudentTabBar() {
   const { t } = useI18n();
-  const items = navItemsFor("student").filter((item) => item.to !== "/profile");
+  // Five thumb-sized destinations; everything else stays in the sidebar/menu.
+  const primary = ["/dashboard", "/assessments", "/homework", "/games", "/achievements"];
+  const items = navItemsFor("student").filter((item) => primary.includes(item.to));
   return (
     <nav
       aria-label={t("app.name")}

@@ -25,17 +25,16 @@ export default function Onboarding() {
   const redeemInvite = useMutation(api.profiles.redeemInviteCode);
   const bootstrapAdmin = useMutation(api.setup.bootstrapAdmin);
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"student" | "invite" | "bootstrap">("student");
+  const [requestedMode, setRequestedMode] = useState<"student" | "invite">("student");
+  // An empty platform can only create the first super admin, so the bootstrap
+  // form takes over the page until that account exists.
+  const mode = status?.needsBootstrap ? "bootstrap" : requestedMode;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!isLoading && hasProfile) navigate("/dashboard", { replace: true });
   }, [hasProfile, isLoading, navigate]);
-
-  useEffect(() => {
-    if (status?.needsBootstrap) setMode("bootstrap");
-  }, [status?.needsBootstrap]);
 
   const schoolName = status?.settings
     ? pick(status.settings.schoolNameEn, status.settings.schoolNameAr)
@@ -115,7 +114,7 @@ export default function Onboarding() {
                 type="button"
                 size="sm"
                 variant={mode === "student" ? "default" : "outline"}
-                onClick={() => setMode("student")}
+                onClick={() => setRequestedMode("student")}
               >
                 {t("roles.student")}
               </Button>
@@ -123,7 +122,7 @@ export default function Onboarding() {
                 type="button"
                 size="sm"
                 variant={mode === "invite" ? "default" : "outline"}
-                onClick={() => setMode("invite")}
+                onClick={() => setRequestedMode("invite")}
               >
                 {t("auth.invite_code")}
               </Button>

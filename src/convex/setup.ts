@@ -643,8 +643,6 @@ export const seedDemoContent = internalMutation({
     const emailOf = (key: string) =>
       DEMO_ACCOUNTS.find((a) => a.key === key)!.email;
     const userOf = (key: string) => args.usersByEmail[emailOf(key)];
-    const roleOf = (key: string) =>
-      DEMO_ACCOUNTS.find((a) => a.key === key)!.role;
 
     const years = await ctx.db.query("academic_years").collect();
     const yearId =

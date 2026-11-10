@@ -65,6 +65,29 @@ export const platformStatus = query({
         adsEnabled: settings?.adsEnabled ?? false,
         adsensePublisherId: settings?.adsensePublisherId ?? null,
         adsenseSlotId: settings?.adsenseSlotId ?? null,
+        // Public landing page configuration (copy + which sections render).
+        landing: {
+          enabled: settings?.landingEnabled ?? true,
+          headlineEn: settings?.landingHeadlineEn ?? null,
+          headlineAr: settings?.landingHeadlineAr ?? null,
+          subtitleEn: settings?.landingSubtitleEn ?? null,
+          subtitleAr: settings?.landingSubtitleAr ?? null,
+          ctaEn: settings?.landingCtaEn ?? null,
+          ctaAr: settings?.landingCtaAr ?? null,
+          sections: {
+            features: settings?.landingSections?.features ?? true,
+            demo: settings?.landingSections?.demo ?? true,
+            games: settings?.landingSections?.games ?? true,
+            steps: settings?.landingSections?.steps ?? true,
+            stats: settings?.landingSections?.stats ?? false,
+          },
+          // Owner-edited strings for the public home page.
+          landingCopy: settings?.landingCopy ?? [],
+          // Owner-edited questions for the home-page games; null = built-in set.
+          landingGames: settings?.landingGames ?? null,
+          // Owner-uploaded artwork per game card; null/empty = built-in art.
+          landingGameImages: settings?.landingGameImages ?? null,
+        },
       },
       // Real counts read from the database — never invented.
       counts: {
@@ -106,6 +129,10 @@ export const updateMyProfile = mutation({
     theme: v.optional(
       v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
     ),
+    /** Inbox types the account chose to silence (assignment, result, …). */
+    mutedNotificationTypes: v.optional(v.array(v.string())),
+    /** Student avatar id (see src/lib/avatars.ts). */
+    avatar: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { profile } = await requireProfile(ctx);
@@ -119,6 +146,39 @@ export const updateMyProfile = mutation({
     }
     if (args.language !== undefined) patch.language = args.language;
     if (args.theme !== undefined) patch.theme = args.theme;
+    if (args.avatar !== undefined) {
+      const avatars = [
+        "fox",
+        "panda",
+        "lion",
+        "octopus",
+        "unicorn",
+        "frog",
+        "owl",
+        "tiger",
+      ];
+      if (!avatars.includes(args.avatar)) {
+        deny(
+          ERROR_CODES.INVALID,
+          "That avatar is not available.",
+          "هذه الشخصية غير متاحة.",
+        );
+      }
+      patch.avatar = args.avatar;
+    }
+    if (args.mutedNotificationTypes !== undefined) {
+      const allowed = [
+        "assignment",
+        "deadline",
+        "result",
+        "feedback",
+        "schedule",
+        "announcement",
+      ];
+      patch.mutedNotificationTypes = args.mutedNotificationTypes.filter((type) =>
+        allowed.includes(type),
+      );
+    }
     await ctx.db.patch(profile._id, patch);
     if (args.name !== undefined) {
       await ctx.db.patch(profile.userId, { name: args.name.trim() });

@@ -80,24 +80,17 @@ export default function AuthPage() {
   // once an administrator switches it on in Settings.
   const demoAccounts = status?.demoAccounts ?? [];
 
-  useEffect(() => {
-    if (mode !== null || !status) return;
-    setMode(needsBootstrap ? "bootstrap" : "signIn");
-  }, [mode, needsBootstrap, status]);
-
-  const [justSignedOut, setJustSignedOut] = useState(false);
+  // Before the visitor picks a panel, derive the right one from the platform
+  // status (empty install → bootstrap, otherwise sign in).
+  const activeMode: Mode | null =
+    mode ?? (status ? (needsBootstrap ? "bootstrap" : "signIn") : null);
 
   useEffect(() => {
-    // Only bounce into the product while the session is genuinely live. After a
-    // sign-out the cached profile can linger for a frame, which used to throw
-    // the user straight back to /dashboard and into a signed-out error.
+    // Only bounce into the product while the session is genuinely live; the
+    // cached profile can linger for a frame after a sign-out.
     if (profileLoading || !isAuthenticated) return;
-    if (justSignedOut) {
-      setJustSignedOut(false);
-      return;
-    }
     if (profile) navigate(returnTo, { replace: true });
-  }, [profile, profileLoading, isAuthenticated, navigate, returnTo, justSignedOut]);
+  }, [profile, profileLoading, isAuthenticated, navigate, returnTo]);
 
   const schoolName = status?.settings
     ? pick(status.settings.schoolNameEn, status.settings.schoolNameAr)
@@ -219,7 +212,7 @@ export default function AuthPage() {
       navigate("/dashboard", { replace: true });
     });
 
-  if (status === undefined || (mode === null && status === undefined)) {
+  if (status === undefined || activeMode === null) {
     return (
       <PublicShell schoolName={schoolName}>
         <LoadingBlock />
@@ -244,7 +237,7 @@ export default function AuthPage() {
                 <Button
                   key={tab.id}
                   type="button"
-                  variant={mode === tab.id ? "default" : "outline"}
+                  variant={activeMode === tab.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     setError(null);
@@ -256,7 +249,7 @@ export default function AuthPage() {
               ))}
             </div>
 
-            {mode === "signIn" ? (
+            {activeMode === "signIn" ? (
               <form className="space-y-4" onSubmit={handleSignIn}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">
@@ -346,7 +339,7 @@ export default function AuthPage() {
               </form>
             ) : null}
 
-            {mode === "signUp" ? (
+            {activeMode === "signUp" ? (
               <form className="space-y-4" onSubmit={handleSignUpStudent}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">
@@ -397,7 +390,7 @@ export default function AuthPage() {
               </form>
             ) : null}
 
-            {mode === "bootstrap" ? (
+            {activeMode === "bootstrap" ? (
               <form className="space-y-4" onSubmit={handleBootstrap}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">
@@ -441,7 +434,7 @@ export default function AuthPage() {
               </form>
             ) : null}
 
-            {mode === "code" ? (
+            {activeMode === "code" ? (
               <form className="space-y-4" onSubmit={handleVerifyCode}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">
@@ -482,7 +475,7 @@ export default function AuthPage() {
               </form>
             ) : null}
 
-            {mode === "forgot" ? (
+            {activeMode === "forgot" ? (
               <form className="space-y-4" onSubmit={handleForgotCode}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">
@@ -518,7 +511,7 @@ export default function AuthPage() {
               </form>
             ) : null}
 
-            {mode === "resetPassword" ? (
+            {activeMode === "resetPassword" ? (
               <form className="space-y-4" onSubmit={handleSetNewPassword}>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">

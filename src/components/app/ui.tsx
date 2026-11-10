@@ -300,13 +300,14 @@ export function CountUp({
   format?: (value: number) => string;
 }) {
   const reduce = useReducedMotion();
-  const [display, setDisplay] = useState(() => (reduce ? value : 0));
-  const from = useRef(reduce ? value : 0);
+  const [display, setDisplay] = useState(0);
+  const from = useRef(0);
 
+  // Reduced motion renders the final value directly; the animation state is
+  // only used when motion is allowed.
   useEffect(() => {
     if (reduce) {
       from.current = value;
-      setDisplay(value);
       return;
     }
     const start = performance.now();
@@ -323,7 +324,8 @@ export function CountUp({
     return () => cancelAnimationFrame(frame);
   }, [value, duration, reduce]);
 
-  return <>{format ? format(display) : Math.round(display)}</>;
+  const shown = reduce ? value : display;
+  return <>{format ? format(shown) : Math.round(shown)}</>;
 }
 
 /** Animated score/progress ring with the Noqta blue→violet sweep. */
@@ -695,7 +697,7 @@ function BoundaryFallback({
   error: unknown;
   reset: () => void;
 }) {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const detail =
     error instanceof ConvexError
       ? ((error.data as { messageEn?: string; messageAr?: string } | undefined) ??

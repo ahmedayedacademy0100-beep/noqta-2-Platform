@@ -16,13 +16,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { useI18n } from "@/i18n";
 import { describeError } from "@/lib/errors";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
+  ExternalLink,
   ImageIcon,
   Info,
+  LayoutTemplate,
   Loader2,
   Megaphone,
   Plus,
@@ -31,8 +32,10 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { LandingCopyEditor } from "@/components/landing/LandingCopyEditor";
+import { LandingGamesEditor } from "@/components/landing/LandingGamesEditor";
 
 type Band = {
   letter: string;
@@ -42,14 +45,10 @@ type Band = {
 };
 
 export default function AdminSettings() {  const { t, lang, pick } = useI18n();
-  const adminSettings = useQuery(api.admin.platformSettings, {}) ?? { settings: null };
+  const adminSettings = useQuery(api.admin.platformSettings, {});
+  const settings = adminSettings?.settings;
   const updateSettings = useMutation(api.admin.updateSettings);
   const generateBrandUploadUrl = useMutation(api.admin.generateBrandUploadUrl);
-  function brandSettingsValue() {
-    return adminSettings?.settings
-      ? { settings: adminSettings.settings }
-      : null;
-  }
 
   const setDemoAccounts = useMutation(api.setup.setDemoAccountsEnabled);
   const loadDemoContent = useAction(api.setup.loadDemoContent);
@@ -63,23 +62,39 @@ export default function AdminSettings() {  const { t, lang, pick } = useI18n();
   const [publisherId, setPublisherId] = useState("");
   const [slotId, setSlotId] = useState("");
   const [protection, setProtection] = useState(true);
+  const [landingEnabled, setLandingEnabled] = useState(true);
+  const [landingSections, setLandingSections] = useState({
+    features: true,
+    demo: true,
+    games: true,
+    steps: true,
+    stats: false,
+  });
   const logoInput = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const brand = brandSettingsValue();
-    if (!brand?.settings || hydrated) return;
-    setBands(brand.settings.gradingScale as Band[]);
-    setAdsEnabled(brand.settings.adsEnabled ?? false);
-    setPublisherId(brand.settings.adsensePublisherId ?? "");
-    setSlotId(brand.settings.adsenseSlotId ?? "");
-    setProtection(brand.settings.contentProtectionEnabled ?? true);
+  // Adopt the stored settings once they arrive. This is a render-phase update,
+  // so the form is never briefly empty and no effect overwrites later edits.
+  if (settings && !hydrated) {
+    setBands(settings.gradingScale as Band[]);
+    setAdsEnabled(settings.adsEnabled ?? false);
+    setPublisherId(settings.adsensePublisherId ?? "");
+    setSlotId(settings.adsenseSlotId ?? "");
+    setProtection(settings.contentProtectionEnabled ?? true);
+    setLandingEnabled(settings.landingEnabled ?? true);
+    setLandingSections(
+      settings.landingSections ?? {
+        features: true,
+        demo: true,
+        games: true,
+        steps: true,
+        stats: false,
+      },
+    );
     setHydrated(true);
-  }, [brandSettingsValue, hydrated]);
+  }
 
   if (adminSettings === undefined) return <LoadingBlock />;
 
-  const brand = brandSettingsValue();
-  const settings = brand?.settings ?? adminSettings.settings;
   if (!settings) {
     return (
       <div className="p-6">
@@ -609,6 +624,164 @@ export default function AdminSettings() {  const { t, lang, pick } = useI18n();
         </SectionCard>
       </div>
 
+      <SectionCard
+        title={t("admin.landing.title")}
+        description={t("admin.landing.subtitle")}
+        actions={
+          <Button asChild size="sm" variant="outline" className="gap-2">
+            <a href="/landing?preview=1" target="_blank" rel="noreferrer">
+              <ExternalLink className="size-4" aria-hidden />
+              {t("admin.landing.preview")}
+            </a>
+          </Button>
+        }
+      >
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/30 p-3">
+          <div className="flex items-start gap-3">
+            <LayoutTemplate className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+            <div className="text-sm">
+              <p className="font-medium">{t("admin.landing.enable")}</p>
+              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                {t("admin.landing.enable_hint")}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={landingEnabled}
+            onCheckedChange={(checked) => {
+              setLandingEnabled(checked);
+              void run(
+                () => updateSettings({ landingEnabled: checked }),
+                t("common.saved"),
+              );
+            }}
+          />
+        </div>
+
+        <form
+          className="space-y-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            void run(
+              async () =>
+                updateSettings({
+                  landingHeadlineEn: String(formData.get("landingHeadlineEn") ?? ""),
+                  landingHeadlineAr: String(formData.get("landingHeadlineAr") ?? ""),
+                  landingSubtitleEn: String(formData.get("landingSubtitleEn") ?? ""),
+                  landingSubtitleAr: String(formData.get("landingSubtitleAr") ?? ""),
+                  landingCtaEn: String(formData.get("landingCtaEn") ?? ""),
+                  landingCtaAr: String(formData.get("landingCtaAr") ?? ""),
+                  landingSections,
+                }),
+              t("common.saved"),
+            );
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("admin.landing.headline_en")}>
+              <Input
+                name="landingHeadlineEn"
+                defaultValue={settings.landingHeadlineEn ?? ""}
+                placeholder="Learn smarter. Play more."
+                maxLength={140}
+              />
+            </Field>
+            <Field label={t("admin.landing.headline_ar")}>
+              <Input
+                name="landingHeadlineAr"
+                dir="rtl"
+                defaultValue={settings.landingHeadlineAr ?? ""}
+                placeholder="تعلّم أذكى. العب أكثر."
+                maxLength={140}
+              />
+            </Field>
+            <Field label={t("admin.landing.subtitle_en")}>
+              <Textarea
+                name="landingSubtitleEn"
+                rows={2}
+                defaultValue={settings.landingSubtitleEn ?? ""}
+                maxLength={260}
+              />
+            </Field>
+            <Field label={t("admin.landing.subtitle_ar")}>
+              <Textarea
+                name="landingSubtitleAr"
+                rows={2}
+                dir="rtl"
+                defaultValue={settings.landingSubtitleAr ?? ""}
+                maxLength={260}
+              />
+            </Field>
+            <Field label={t("admin.landing.cta_en")}>
+              <Input
+                name="landingCtaEn"
+                defaultValue={settings.landingCtaEn ?? ""}
+                placeholder="Get started free"
+                maxLength={40}
+              />
+            </Field>
+            <Field label={t("admin.landing.cta_ar")}>
+              <Input
+                name="landingCtaAr"
+                dir="rtl"
+                defaultValue={settings.landingCtaAr ?? ""}
+                placeholder="ابدأ مجاناً"
+                maxLength={40}
+              />
+            </Field>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium">{t("admin.landing.sections")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("admin.landing.sections_hint")}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                [
+                  ["features", t("admin.landing.section.features")],
+                  ["demo", t("admin.landing.section.demo")],
+                  ["games", t("admin.landing.section.games")],
+                  ["steps", t("admin.landing.section.steps")],
+                  ["stats", t("admin.landing.section.stats")],
+                ] as const
+              ).map(([key, label]) => (
+                <label
+                  key={key}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-3 py-2 text-sm"
+                >
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={landingSections[key]}
+                    onChange={(event) =>
+                      setLandingSections((previous) => ({
+                        ...previous,
+                        [key]: event.target.checked,
+                      }))
+                    }
+                    className="size-4 accent-primary"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Button type="submit" disabled={busy} className="gap-2">
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Save className="size-4" aria-hidden />
+            )}
+            {t("common.save")}
+          </Button>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {t("admin.landing.hint")}
+          </p>
+        </form>
+      </SectionCard>
+
       <SectionCard title={t("admin.ads.title")} description={t("admin.ads.description")}>          <form
           className="space-y-4"
           onSubmit={async (event) => {
@@ -668,6 +841,17 @@ export default function AdminSettings() {  const { t, lang, pick } = useI18n();
             {t("common.save")}
           </Button>
         </form>
+      </SectionCard>
+
+      <SectionCard title={t("admin.copy.title")}>
+        <p className="mb-4 text-sm leading-6 text-muted-foreground">
+          {t("admin.copy.sub")}
+        </p>
+        <LandingCopyEditor settings={settings} />
+      </SectionCard>
+
+      <SectionCard title={t("admin.games.title")} description={t("admin.games.description")}>
+        <LandingGamesEditor settings={settings} />
       </SectionCard>
 
       <div className="grid gap-6 lg:grid-cols-2">

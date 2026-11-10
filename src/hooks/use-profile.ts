@@ -14,6 +14,10 @@ export type AppProfile = {
   isDemo: boolean;
   points: number;
   streak: number;
+  /** Inbox types this account silenced; absent means nothing muted. */
+  mutedNotificationTypes?: string[];
+  /** Student-chosen avatar id (see src/lib/avatars.ts). */
+  avatar?: string;
 };
 
 /**

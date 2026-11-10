@@ -27,7 +27,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import { useI18n } from "@/i18n";
-import { describeError } from "@/lib/errors";
 import { fromDateInputValue } from "@/lib/format";
 import { useMutation, useQuery } from "convex/react";
 import { ClipboardList, Loader2, Plus, Search } from "lucide-react";

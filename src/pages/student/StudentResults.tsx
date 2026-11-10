@@ -7,7 +7,6 @@ import {
   SectionCard,
   StatusBadge,
 } from "@/components/app/ui";
-import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
